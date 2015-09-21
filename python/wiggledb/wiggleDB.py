@@ -23,7 +23,6 @@ import os
 import os.path
 import json
 import math 
-import wigglePlots
 import numpy
 import matplotlib
 import matplotlib.pyplot as pyplot
@@ -261,6 +260,7 @@ def count_regions(location):
 	elif location[-3:] == '.bb':
 		return int(run('bigBedToBed %s stdout | grep -v ^# | wc -l' % (location)).strip())
 	else:
+		print location
 		raise BaseException
 
 def register_new_chromosomes(cursor, location):
@@ -301,7 +301,7 @@ def get_locations(cursor, params, userid):
 	if 'annot_name' in params:
 		return get_annotation_dataset_locations(cursor, params['annot_name'], userid)
 	elif 'user_name' in params:
-		return get_user_dataset_locations(cursor, params['user_name'])
+		return get_user_dataset_locations(cursor, params['user_name'], userid)
 	else:
 		return get_dataset_locations(cursor, params)
 
