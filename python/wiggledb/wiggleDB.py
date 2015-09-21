@@ -441,7 +441,10 @@ def form_filter(cursor, f, userid):
 		return " ".join([f[0],"extend",f[1],get_annotation_dataset_locations(cursor, [f[2]], userid)[0]])
 
 def form_filters(cursor, filters, userid):
-	return " ".join([form_filter(cursor, X, userid) for X in filters])
+	if filters is not None:
+		return " ".join([form_filter(cursor, X, userid) for X in filters])
+	else:
+		return ""
 
 def request_compute(conn, cursor, options, config):
 	fun_A = form_filters(cursor, options.filters_a, options.userid) + " " + options.wa
@@ -452,7 +455,10 @@ def request_compute(conn, cursor, options, config):
 	cmd_A = " ".join([fun_A] + data_A)
 
 	if options.b is not None:
-		fun_B = form_filters(cursor, options.filters_b, options.userid) + " " + options.wb
+		if options.wb is not None:
+			fun_B = form_filters(cursor, options.filters_b, options.userid) + " " + options.wb
+		else:
+			fun_B = None
 		data_B = get_locations(cursor, options.b, options.userid)
 		options.countB = len(data_B)
 		if len(data_B) == 0:
