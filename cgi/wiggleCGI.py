@@ -42,13 +42,16 @@ class WiggleDBOptions(object):
 		
 
 def report_result(result):
-	base_url = 'http://s3-%s.amazonaws.com/%s/' % (config['s3_region'], config['s3_bucket'])
+	if 's3_bucket' in config:
+		base_url = 'http://s3-%s.amazonaws.com/%s/' % (config['s3_region'], config['s3_bucket'])
+	else:
+		base_url = config['base_data_url']
 	url = re.sub(config['working_directory'], base_url, result['location'])		
 	if result['location'][-3:] == ".bw" or result['location'][-3:] == ".bb" or result['location'][-4:] == ".bed":
-		ensembl = 'http://%s/%s/Location/View?g=%s;contigviewbottom=url:%s' % (config['ensembl_server'], config['ensembl_species'], config['ensembl_gene'], url)
+		view = 'http://%s/%s/Location/View?g=%s;contigviewbottom=url:%s' % (config['ensembl_server'], config['ensembl_species'], config['ensembl_gene'], url)
 	else:
-		ensembl = url + ".png"
-	print json.dumps({'status':result['status'], 'url':url, 'view':ensembl})
+		view = url + ".png"
+	print json.dumps({'status':result['status'], 'url':url, 'view':view})
 
 def main():
 	print "Content-Type: application/json"
@@ -82,7 +85,8 @@ def main():
 			options = WiggleDBOptions()
 			options.wa = form['wa'].value
 			options.working_directory = config['working_directory']
-			options.s3 = config['s3_bucket']
+			if 's3_bucket' in config:
+				options.s3 = config['s3_bucket']
 			if 'userid' in form:
 				options.userid = form['userid'].value
 			if 'email' in form:
