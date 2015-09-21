@@ -6,12 +6,14 @@ import cgitb
 import json
 import sqlite3
 import re
-import wiggletools.wiggleDB
+import wiggledb.wiggleDB
+import os
+import subprocess
 
 DEBUG = False
 CONFIG_FILE = '/data/wiggletools/wiggletools.conf'
 
-config = wiggletools.wiggleDB.read_config_file(CONFIG_FILE)
+config = wiggledb.wiggleDB.read_config_file(CONFIG_FILE)
 cgitb.enable(logdir=config['logdir'])
 
 #try: # Windows needs stdio set for binary mode.
@@ -58,23 +60,23 @@ def main():
 		cursor = conn.cursor()
 		if "count" in form:
 			params = dict((re.sub("^._", "", X), form.getlist(X)) for X in form if X != "count")
-			count = len(wiggletools.wiggleDB.get_dataset_locations(cursor, params))
+			count = len(wiggledb.wiggleDB.get_dataset_locations(cursor, params))
 			print json.dumps({'query':params,'count':count})
 
 		elif 'annotations' in form:
-			print json.dumps({"annotations": [X[0] for X in wiggletools.wiggleDB.get_annotations(cursor)]})
+			print json.dumps({"annotations": [X[0] for X in wiggledb.wiggleDB.get_annotations(cursor)]})
 
 		elif 'uploadUrl' in form:
-			print json.dumps(wiggletools.wiggleDB.upload_dataset(cursor, config['working_directory'], form['uploadUrl'].value, form['description'].value, form['userid'].value))
+			print json.dumps(wiggledb.wiggleDB.upload_dataset(cursor, config['working_directory'], form['uploadUrl'].value, form['description'].value, form['userid'].value))
 
 		elif 'uploadFile' in form:
-			print json.dumps(wiggletools.wiggleDB.save_dataset(cursor, config['working_directory'], form['file'], form['description'].value, form['userid'].value))
+			print json.dumps(wiggledb.wiggleDB.save_dataset(cursor, config['working_directory'], form['file'], form['description'].value, form['userid'].value))
 
 		elif 'provenance' in form:
-			print json.dumps(wiggletools.wiggleDB.get_annotation_dataset_description(cursor, form['provenance'].value))
+			print json.dumps(wiggledb.wiggleDB.get_annotation_dataset_description(cursor, form['provenance'].value))
 
 		elif 'myannotations' in form:
-			print json.dumps(wiggletools.wiggleDB.get_user_datasets(cursor, form['userid'].value))
+			print json.dumps(wiggledb.wiggleDB.get_user_datasets(cursor, form['userid'].value))
 
 		elif 'wa' in form:
 			options = WiggleDBOptions()
@@ -105,7 +107,7 @@ def main():
 			if "filter_B" in form:
 				options.filters_b = [X.split("|") for X in form.getlist("filter_B")]
 
-			result = wiggletools.wiggleDB.request_compute(conn, cursor, options, config)
+			result = wiggledb.wiggleDB.request_compute(conn, cursor, options, config)
 			if result['status'] == 'DONE':
 				report_result(result)
 			else:
