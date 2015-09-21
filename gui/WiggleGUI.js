@@ -253,6 +253,30 @@ function add_annotations() {
   }
 }
 
+///////////////////////////////////////////
+// Panel filters
+///////////////////////////////////////////
+
+function panel_filters(panel) {
+  var filters = [];
+  var header = "filter_" + panel_letters[panel.attr("id")] + "=";
+  panel.find('.filter').each(
+    function (index, div) {
+      var constraint = $(div).find("#constraint").val();
+      var distance = $(div).find("#distance").val();
+      var reference = $(div).find("#reference").val();
+      if (constraint == "(No filter)") {
+	return;
+      } else if (distance == null || distance == "") {
+	filters.push(header + [constraint, "0", reference].join("|")); 
+      } else {
+	filters.push(header + [constraint, distance, reference].join("|")); 
+      } 
+    }
+  );
+  return filters.join("&");
+}
+
 //////////////////////////////////////////
 // Panel Query
 //////////////////////////////////////////
@@ -268,6 +292,7 @@ function panel_query(panel) {
       } 
     }
   );
+  string.push(panel_filters(panel));
   return string.join("&");
 }
 
@@ -276,23 +301,7 @@ function panel_query(panel) {
 ///////////////////////////////////////////
 
 function panel_reduction(panel) {
-  var commands = [];
-  panel.find('.filter').each(
-    function (index, div) {
-      var constraint = $(div).find("#constraint").val();
-      var distance = $(div).find("#distance").val();
-      var reference = $(div).find("#reference").val();
-      if (constraint == "(No filter)") {
-	return;
-      } else if (distance == null || distance == "") {
-	commands.push([constraint, reference].join(" ")); 
-      } else {
-	commands.push([constraint, "extend", distance, reference].join(" ")); 
-      } 
-    }
-  );
-  commands.push(panel.find('#reduction').val());
-  return commands.join(" ");
+  return panel.find('#reduction').val();
 }
 
 //////////////////////////////////////////

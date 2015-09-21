@@ -35,6 +35,8 @@ class WiggleDBOptions(object):
 		self.db = config['database_location']
 		self.config = CONFIG_FILE
 		self.userid = None
+		self.filters_a = None
+		self.filters_b = None
 		
 
 def report_result(result):
@@ -98,6 +100,10 @@ def main():
 			options.b = dict((X[2:], form.getlist(X)) for X in form if X[:2] == "B_")
 			if len(options.b.keys()) == 0:
 				options.b = None
+			if "filter_A" in form:
+				options.filters_a = [X.split("|") for X in form.getlist("filter_A")]
+			if "filter_B" in form:
+				options.filters_b = [X.split("|") for X in form.getlist("filter_B")]
 
 			result = wiggletools.wiggleDB.request_compute(conn, cursor, options, config)
 			if result['status'] == 'DONE':

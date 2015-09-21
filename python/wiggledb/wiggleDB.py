@@ -367,28 +367,15 @@ def make_barchart(counts, total, totals, labels, out, format='pdf'):
 	pyplot.xticks(ind, labels)
 	pyplot.savefig(out, format=format)
 
-def substitute_reference_locations(cursor, string, userid):
-	items = string.split(" ")
-	index = 0
-	while index < len(items) and (items[index] == 'overlaps' or items[index] == 'noverlaps'):
-		if items[index + 1] == 'extend':
-			items[index + 3] = get_annotation_dataset_locations(cursor, [items[index + 3]], userid)[0]
-			index += 4
-		else:
-			items[index + 1] = get_annotation_dataset_locations(cursor, [items[index + 1]], userid)[0]
-			index += 2
-
-	return " ".join(items)
-
 def launch_quick_compute(conn, cursor, fun_merge, fun_A, data_A, fun_B, data_B, options, config):
-	cmd_A = " ".join([substitute_reference_locations(cursor, fun_A, options.userid)] + data_A + [':'])
+	cmd_A = " ".join([fun_A] + data_A + [':'])
 
 	if data_B is not None:
 		merge_words = fun_merge.split(' ')
 
 		assert fun_merge is not None
 		if fun_B is not None:
-			cmd_B = " ".join([substitute_reference_locations(cursor, fun_B, options.userid)] + data_B + [':'])
+			cmd_B = " ".join([fun_B] + data_B + [':'])
 		else:
 			cmd_B = " ".join(data_B)
 
@@ -442,8 +429,19 @@ def make_normalised_form(fun_merge, fun_A, data_A, fun_B, data_B):
 
 	return res
 
+def form_filter(cursor, f, userid):
+	if len(f) != 3:
+		return ""
+	elif f[1] == 0:
+		return f[0] + " " + get_annotation_dataset_locations(cursor, [f[2]], userid)[0]
+	else:
+		return " ".join([f[0],"extend",f[1],get_annotation_dataset_locations(cursor, [f[2]], userid)[0]])
+
+def form_filters(cursor, filters, userid):
+	return " ".join([form_filter(cursor, X, userid) for X in filters])
+
 def request_compute(conn, cursor, options, config):
-	fun_A = options.wa 
+	fun_A = form_filters(cursor, options.filters_a, options.userid) + " " + options.wa
 	data_A = get_locations(cursor, options.a, options.userid)
 	options.countA = len(data_A)
 	if len(data_A) == 0:
@@ -451,7 +449,7 @@ def request_compute(conn, cursor, options, config):
 	cmd_A = " ".join([fun_A] + data_A)
 
 	if options.b is not None:
-		fun_B = options.wb
+		fun_B = form_filters(cursor, options.filters_b, options.userid) + " " + options.wb
 		data_B = get_locations(cursor, options.b, options.userid)
 		options.countB = len(data_B)
 		if len(data_B) == 0:
