@@ -345,7 +345,7 @@ def get_annotation_counts(cursor, userid):
 		counts += [(X[0], X[1]) for X in cursor.execute('SELECT name, count FROM user_datasets WHERE userid=?', (userid,)).fetchall()]
 	return dict(counts)
 
-def make_barchart(counts, total, totals, labels, out, format='pdf'):
+def make_barchart(counts, total, rev_counts, totals, labels, out, format='pdf'):
 	width = 0.35
 
 	ind = numpy.arange(len(labels)) - width/2 
@@ -355,13 +355,13 @@ def make_barchart(counts, total, totals, labels, out, format='pdf'):
 	pyplot.bar(ind, heights, width, yerr=errors, color='b')
 
 	ind = numpy.arange(len(labels)) + width/2 
-	heights = [X/float(Y) for X, Y in zip(counts, totals)]
-	assert all(X <= 1 and X >= 0 for X in heights), (counts, total, heights)
+	heights = [X/float(Y) for X, Y in zip(rev_counts, totals)]
+	assert all(X <= 1 and X >= 0 for X in heights), (zip(rev_counts, totals), heights)
 	errors = [ math.sqrt(2*X*(1-X) / Y) for X, Y in zip(heights, totals) ]
 	pyplot.bar(ind, heights, width, yerr=errors, color='r')
 
-	blue_patch = mpatches.Patch(color='blue', label='Specificity')
-	red_patch = mpatches.Patch(color='red', label='Sensitivity')
+	blue_patch = mpatches.Patch(color='blue', label='Precision')
+	red_patch = mpatches.Patch(color='red', label='Recall')
 	pyplot.legend((blue_patch, red_patch), ('Specificity', 'Sensitivity'))
 
 	pyplot.xticks(ind, labels)
@@ -387,7 +387,10 @@ def launch_quick_compute(conn, cursor, fun_merge, fun_A, data_A, fun_B, data_B, 
 				counts = []
 				for annotation in data_B:
 					counts.append(int(run('wiggletools write_bg - overlaps %s %s | wc -l' % (annotation, cmd_A)).strip()))
-				assert counts[-1] <= total, 'wiggletools write_bg - overlaps %s %s | wc -l' % (annotation, cmd_A)
+			
+				rev_counts = []
+				for annotation in data_B:
+					rev_counts.append(int(run('wiggletools write_bg - overlaps %s %s | wc -l' % (cmd_A, annotation)).strip()))
 
 				annotation_count_dict = get_annotation_counts(cursor, options.userid)
 				annotation_counts = []
@@ -400,7 +403,7 @@ def launch_quick_compute(conn, cursor, fun_merge, fun_A, data_A, fun_B, data_B, 
 				out.write("\t".join(['ALL', str(total)]) + "\n")
 				out.close()
 
-				make_barchart(counts, total, annotation_counts, options.b['annot_name'], destination + '.png', format='png')
+				make_barchart(counts, total, rev_counts, annotation_counts, options.b['annot_name'], destination + '.png', format='png')
 		else:
 			fh, destination = tempfile.mkstemp(suffix='.bed',dir=options.working_directory)
 			run(" ".join(['wiggletools','write', destination, fun_merge, cmd_A, cmd_B]))
