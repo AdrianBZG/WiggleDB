@@ -123,11 +123,12 @@ def main():
 		conn.commit()
 		conn.close()
 	except:
-		print ">>>>>>>>>>>>>>>>>>>>>>>>"
-		print form
-		print form.keys()
-		print json.dumps("ERROR")
-		raise
+		if DEBUG:
+			print ">>>>>>>>>>>>>>>>>>>>>>>>"
+			print form
+			print form.keys()
+			raise
+		print json.dumps({'status': 'ERROR'})
 
 if __name__ == "__main__":
 	main()
