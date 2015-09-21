@@ -292,7 +292,6 @@ function panel_query(panel) {
       } 
     }
   );
-  string.push(panel_filters(panel));
   return string.join("&");
 }
 
@@ -479,7 +478,7 @@ function get_optional_user_id() {
 function summary() {
   var panel = $('#choose');
   $(this).button('loading');
-  submit_query(panel_query(panel) + '&wa=' + panel_reduction(panel) + "&" + get_optional_user_id()); 
+  submit_query([panel_query(panel), panel_filters(panel), 'wa=' + panel_reduction(panel), get_optional_user_id()].join("&")); 
 }
 
 // Request comparison
@@ -491,7 +490,9 @@ function comparison() {
   submit_query(
     [ 
       panel_query(panelA),
+      panel_filters(panelA),
       panel_query(panelB),
+      panel_filters(panelB),
       get_optional_user_id(),
       'wa='+panel_reduction(panelA),
       'wb='+panel_reduction(panelB),
