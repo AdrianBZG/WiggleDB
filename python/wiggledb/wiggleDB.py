@@ -497,7 +497,7 @@ def get_user_datasets(cursor, userid):
 
 def wget_dataset(url, dir):
 	fh, destination = tempfile.mkstemp(suffix="." + url.split('.')[-1],dir=dir)
-	run("cp %s %s" % (url, destination))
+	run("wget %s -O %s" % (url, destination))
 	return destination
 
 def check_file_integrity(file, cursor):
