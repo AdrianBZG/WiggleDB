@@ -66,7 +66,7 @@ function create_multiselect(container, attribute, panel) {
     .attr("attribute",panel_letters[panel.attr("id")]+ "_" + attribute);
 
   if (attribute in attribute_values) {
-    attribute_values[attribute].map(function(value) {add_value_to_multiselect(value, multiselect2);});
+    attribute_values[attribute].sort().map(function(value) {add_value_to_multiselect(value, multiselect2);});
   }
   multiselect2.multiselect({onChange: function(element, checked) {update_panel_count(panel);}, maxHeight: 400, buttonWidth:'100%'});
   multiselect2.parent().find('.btn').css("white-space","normal");
@@ -97,7 +97,7 @@ function change_multiselect() {
 
 function create_attribute_select(container) {
   var select = $("<select>").addClass("form-control").appendTo(container);
-  Object.keys(attribute_values).map(function(attribute) {add_attribute_to_select(attribute, select);});
+  Object.keys(attribute_values).sort().map(function(attribute) {add_attribute_to_select(attribute, select);});
   $("<option>").attr("value","None").text("None").attr("selected","selected").appendTo(select);
   select.change(change_multiselect);
 }
