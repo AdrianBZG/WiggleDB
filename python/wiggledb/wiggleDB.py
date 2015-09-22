@@ -406,11 +406,11 @@ def launch_quick_compute(conn, cursor, fun_merge, fun_A, data_A, fun_B, data_B, 
 				make_barchart(counts, total, rev_counts, annotation_counts, options.b['annot_name'], destination + '.png', format='png')
 		else:
 			fh, destination = tempfile.mkstemp(suffix='.bed',dir=options.working_directory)
-			run(" ".join(['wiggletools','write', destination, fun_merge, cmd_A, cmd_B]))
+			run(" ".join(['wiggletools','write_bg', destination, fun_merge, cmd_A, cmd_B]))
 	else:
 		fh, destination = tempfile.mkstemp(suffix='.bed',dir=options.working_directory)
 		os.remove(destination)
-		run(" ".join(['wiggletools','write', destination, cmd_A]))
+		run(" ".join(['wiggletools','write_bg', destination, cmd_A]))
 
 	return destination
 
