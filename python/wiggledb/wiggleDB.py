@@ -59,6 +59,7 @@ def get_options():
 	parser.add_argument('--emails','-e',dest='emails',help='List of e-mail addresses for reminder',nargs='*')
 
 	parser.add_argument('--load',dest='load',help='Datasets to load in database')
+	parser.add_argument('--load_assembly',dest='load_assembly',help='Load assembly description with chromosome lengths', nargs=2)
 	parser.add_argument('--load_annotations',dest='load_annots',help='References to load in database')
 	parser.add_argument('--clean',dest='clean',help='Delete cached datasets older than X days', type=int)
 	parser.add_argument('--cache',dest='cache',help='Dump cache info', action='store_true')
@@ -110,6 +111,7 @@ def create_database(cursor, filename):
 	create_dataset_table(cursor, filename)
 	create_annotation_dataset_table(cursor)
 	create_user_dataset_table(cursor)
+	create_assembly_table(cursor)
 	create_chromosome_table(cursor)
 
 def create_cache(cursor):
@@ -175,6 +177,17 @@ def create_chromosome_table(cursor):
 			chromosomes
 			(
  			name varchar(1000) UNIQUE
+			)
+		 '''
+	cursor.execute(header)
+
+def create_assembly_table(cursor):
+	header = '''
+			CREATE TABLE IF NOT EXISTS 
+			assemblies
+			(
+ 			name varchar(100) UNIQUE,
+ 			location varchar(1000)
 			)
 		 '''
 	cursor.execute(header)
@@ -264,14 +277,26 @@ def count_regions(location):
 		raise BaseException
 
 def register_new_chromosomes(cursor, location):
-	old_chromosomes = get_chromosomes(cursor)
-	for chromosome in run('wiggletools write_bg - %s | cut -f1 | uniq' % (location)).split('\n'):
-		if chromosome not in old_chromosomes and len(chromosome) > 0:
-			cursor.execute('INSERT INTO chromosomes (name) VALUES (?)', (chromosome, ))
+	file = open(location)
+	for line in file:
+		items = line.strip().split('\t')
+		if len(items) == 2:
+			cursor.execute('INSERT INTO chromosomes (name) VALUES (?)', (items[0], ))
+	file.close()
+
+def register_assembly(cursor, name, location):
+	cursor.execute('INSERT INTO assemblies (name, location) VALUES (?,?)', (name, location))
+	register_new_chromosomes(cursor, location)
+
+def get_assembly_file(cursor):
+	res = cursor.execute('SELECT location FROM assemblies').fetchall()
+	if len(res) > 0:
+		return res[0][0]
+	else:
+		raise
 
 def add_annotation_dataset(cursor, location, name, description):
 	cursor.execute('INSERT INTO annotation_datasets (name,location,description, count) VALUES (?,?,?,?)', (name, location, description, count_regions(location)))
-	register_new_chromosomes(cursor, location)
 
 def get_user_dataset_locations(cursor, names, userid):
 	locations = []
@@ -594,6 +619,9 @@ def main():
 			items = line.strip().split('\t')
 			assert len(items) == 3
 			add_annotation_dataset(cursor, items[0], items[1], items[2])
+	elif options.load_assembly is not None:
+		name, location = options.load_assembly
+		register_assembly(cursor, name, os.path.abspath(location))
 	elif options.clean is not None:
 		clean_database(cursor, options.clean)
 	elif options.cache:
