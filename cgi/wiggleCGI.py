@@ -11,7 +11,7 @@ import os
 import subprocess
 
 DEBUG = False
-CONFIG_FILE = '/data/wiggletools/wiggletools.conf'
+CONFIG_FILE = '/home/ubuntu/run/gstats-dev/WiggleDB/conf/wiggletools.conf'
 
 config = wiggledb.wiggleDB.read_config_file(CONFIG_FILE)
 cgitb.enable(logdir=config['logdir'])

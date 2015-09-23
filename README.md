@@ -34,20 +34,21 @@ Prepare the data
 	```
 	and its content should be the absolute path to the file. All other columns are your business. Try to select meaningful headers, and remove columns with too many values.
 
-2. Prepare a tab-delimited file, say annotations.tsv with annotation metadata. The three column headers must be: 
-	```
-	location	name	description
-	```
-	Where:
-	- location is a file location
-	- name is a short unique label
-	- description is a longer HTML description of the dataset.
+2. Prepare a tab-delimited file, say annotations.tsv with annotation metadata:
+	- location of a file location
+	- short unique label
+	- longer HTML description of the dataset.
+
+3. Prepare a final tab delimited file, say chromosome\_lengths.txt where the coluns contain:
+	- name of chromosome / sequence
+	- length in bp
 
 3. Create an SQLite3 database:
 
 	```	
 	wiggleDB.py --database database.sqlite3 --load datasets.tsv
 	wiggleDB.py --database database.sqlite3 --load_annotations annotations.tsv 
+	wiggleDB.py --database database.sqlite3 --load_annotations GRCh38 chromosome_lengths.txt 
 	chmod 777 database.sqlite3
 	```
 
