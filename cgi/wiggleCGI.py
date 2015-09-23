@@ -47,10 +47,14 @@ def report_result(result):
 	else:
 		base_url = config['base_data_url']
 	url = re.sub(config['working_directory'], base_url, result['location'])		
-	if result['location'][-3:] == ".bw" or result['location'][-3:] == ".bb" or result['location'][-4:] == ".bed":
+
+	if result['location'][-3:] == ".bw" or result['location'][-3:] == ".bb":
 		view = 'http://%s/%s/Location/View?g=%s;contigviewbottom=url:%s' % (config['ensembl_server'], config['ensembl_species'], config['ensembl_gene'], url)
+	elif result['location'][-4:] == ".bed":
+		view = 'http://%s/%s/Location/View?g=%s;contigviewbottom=url:%s.bw' % (config['ensembl_server'], config['ensembl_species'], config['ensembl_gene'], url)
 	else:
 		view = url + ".png"
+
 	print json.dumps({'status':result['status'], 'url':url, 'view':view})
 
 def main():
