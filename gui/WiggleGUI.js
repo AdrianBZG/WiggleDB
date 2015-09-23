@@ -208,9 +208,26 @@ function add_personal_filters(annotation) {
   );
 }
 
+function update_default_annotation_names(annotation) {
+  $("#upload").find("input[id$='description']").each( 
+    function (index, element) {
+      if ($(element).attr("value") == annotation) {
+        var tail = annotation.substr(14);
+        if (tail == "") {
+          $(element).attr("value", "My Annotation 2");
+        } else {
+          var new_index = parseInt(tail) + 1;
+          $(element).attr("value", "My Annotation " + new_index.toString());
+        } 
+      }
+    }
+  );
+}
+
 function insert_personal_annotation(annotation) {
   add_personal_annotation(annotation);
   add_personal_filters(annotation);
+  update_default_annotation_names(annotation);
 }
 
 function insert_personal_annotations(data) {
@@ -414,7 +431,7 @@ function upload_file() {
   var formData = new FormData();
   formData.append("file", $(this).parents("#FileUpload").find("#file").get(0).files[0]);
   $.ajax({
-    url: CGI_URL  + "uploadFile=1&userid=" + user_ID() + "&description=" + $(this).parents("#FileUpload").find("#description").val(),
+    url: CGI_URL  + "uploadFile=1&userid=" + user_ID() + "&description=" + $(this).parents("#FileUpload").find("#upload_description").val(),
     data: formData, 
     processData: false, 
     type: 'POST',
@@ -429,7 +446,7 @@ function upload_file() {
 function upload_url() {
   var files = $("#upload").find("#file").val();
   $(this).button('loading');
-  $.getJSON(CGI_URL + "userid=" + user_ID() + "&uploadUrl=" + $('#URL').val() + "&description=" + $("#description").val()).done(report_upload).fail(catch_JSON_error);
+  $.getJSON(CGI_URL + "userid=" + user_ID() + "&uploadUrl=" + $('#URL').val() + "&description=" + $("#url_description").val()).done(report_upload).fail(catch_JSON_error);
 }
 
 function report_upload(data) {
