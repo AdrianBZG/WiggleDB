@@ -453,6 +453,13 @@ function update_my_panel() {
   $(this).removeClass('active');
 }
 
+function save_result_file() {
+  var modal = $(this).parents('.modal');
+  var name = modal.find('#name').val();
+  var url = modal.find('#url').attr("href");
+  $.getJSON(CGI_URL + "userid=" + user_ID() + "&uploadUrl=" + url + "&description=" + name).done(report_upload).fail(catch_JSON_error);
+}
+
 function report_result(data) {
   if (data["status"] == "DONE") {
     if (data['url'].substr(-4,4) == ".txt") {
@@ -465,6 +472,7 @@ function report_result(data) {
       var modal = $('#Success_modal').clone();
       modal.find('#url').attr('href',data['url']);
       modal.find('#view').attr('href',data['view']);
+      modal.on('click','#save', save_result_file);
       modal.modal();
     }
   } else if (data["status"] == "EMPTY") {
