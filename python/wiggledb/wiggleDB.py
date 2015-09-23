@@ -522,6 +522,12 @@ def fetch_user_datasets(cursor, userid):
 def get_user_datasets(cursor, userid):
 	return {'files': [X[0] for X in cursor.execute('SELECT name FROM user_datasets WHERE userid=?', (userid,)).fetchall()]}
 
+def remove_user_datasets(cursor, name, userid):
+	locations = get_user_dataset_locations(cursor, [name], userid)
+	map(os.remove, locations)
+	cursor.execute('DELETE FROM user_datasets WHERE name=? AND userid=?', (name, userid))
+	return {'status':'SUCCESS'}
+
 def wget_dataset(url, dir):
 	fh, destination = tempfile.mkstemp(suffix="." + url.split('.')[-1],dir=dir)
 	run("wget %s -O %s" % (url, destination))

@@ -332,6 +332,16 @@
 		</tr>
 	      </table>
             </div>
+	    <div style="border:2px solid gray;border-radius:5px;padding:10px">
+	      <table id="myannots" width="100%">
+	      <tr>
+	      <td width="20">  </td>
+	      <td width="20">  </td>
+	      <td></td>
+	      </tr>
+	      <!-- This is where user annotations go -->
+	      </table>
+	    </div>
           </div>
 
           <div class="tab-pane" id="retrieve">
@@ -623,6 +633,45 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Share Modal -->
+      <div class="modal fade" id="Share_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+              <h4 class="modal-title" id="myModalLabel"></h4>
+            </div>
+            <div class="modal-body" id="myModalBody">
+              You annotation '<span id="name"></span>' can be found at: 
+              <br>
+              <a id='url' target='_blank'></a>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm deletion Modal -->
+      <div class="modal fade" id="Confirm_deletion_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+              <h4 class="modal-title" id="myModalLabel"></h4>
+            </div>
+            <div class="modal-body" id="myModalBody">
+              Are you sure you wish to delete your '<span id="name"></span>' annotation? 
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="confirm" class="btn btn-primary" data-dismiss="modal">Delete</button>
+              <button type="button" class="btn btn-primary" data-dismiss="modal">Cancel</button>
             </div>
           </div>
         </div>

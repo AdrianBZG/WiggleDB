@@ -40,13 +40,15 @@ class WiggleDBOptions(object):
 		self.filters_a = None
 		self.filters_b = None
 		
-
-def report_result(result):
+def location2url(location):
 	if 's3_bucket' in config:
 		base_url = 'http://s3-%s.amazonaws.com/%s/' % (config['s3_region'], config['s3_bucket'])
 	else:
 		base_url = config['base_data_url']
-	url = re.sub(config['working_directory'], base_url, result['location'])		
+	return re.sub(config['working_directory'], base_url, location)		
+
+def report_result(result):
+	url = location2url(result['location'])
 
 	if result['location'][-3:] == ".bw" or result['location'][-3:] == ".bb":
 		view = 'http://%s/%s/Location/View?g=%s;contigviewbottom=url:%s' % (config['ensembl_server'], config['ensembl_species'], config['ensembl_gene'], url)
@@ -84,6 +86,19 @@ def main():
 
 		elif 'myannotations' in form:
 			print json.dumps(wiggledb.wiggleDB.get_user_datasets(cursor, form['userid'].value))
+
+		elif 'remove_annotation' in form:
+			print json.dumps(wiggledb.wiggleDB.remove_user_datasets(cursor, form['remove_annotation'].value, form['userid'].value))
+
+		elif 'share_annotation' in form:
+			name = form['share_annotation'].value
+			userid = form['userid'].value
+			locations = wiggledb.wiggleDB.get_user_dataset_locations(cursor, [name], userid)
+			if len(locations) > 0:
+				print json.dumps({'status':'SUCCESS', 'name':name, 'url':location2url(locations[0])})
+			else:
+				print json.dumps({'status':'ERROR'})
+			
 
 		elif 'wa' in form:
 			options = WiggleDBOptions()
