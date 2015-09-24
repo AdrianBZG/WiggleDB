@@ -101,6 +101,21 @@ def get_options():
 	return options, config
 
 ###########################################
+## Convenience functions
+###########################################
+
+def run(cmd):
+	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	ret = p.wait()
+	out, err = p.communicate()
+	if ret != 0:
+		sys.stdout.write("Failed in running %s\n" % (cmd))
+		sys.stdout.write("OUTPUT:\n%s\n" % (out))
+		sys.stdout.write("ERROR:\n%s\n" % (out))
+		raise BaseException
+	return out
+
+###########################################
 ## Creating a database
 ###########################################
 
@@ -119,8 +134,13 @@ def create_cache(cursor):
 	CREATE TABLE IF NOT EXISTS
 	cache
 	(
-	query varchar(10000) UNIQUE,
-	location varchar(1000),
+	merge varchar(100),
+	mergeA varchar(100),
+	filesA varchar(10000),
+	mergeB varchar(100),
+	filesB varchar(10000),
+	location varchar(1000) UNIQUE,
+	userid varchar(100),
 	last_query datetime
 	)
 	''')
@@ -129,13 +149,15 @@ def create_dataset_table(cursor, filename):
 	file = open(filename)
 	items = file.readline().strip().split('\t')
 	assert items[0] == 'location', "Badly formed dataset table, please ensure the first column refers to location:\n" + items[0]
+	assert items[1] == 'id', "Badly formed dataset table, please ensure the first column refers to location:\n" + items[0]
 	header = '''
 			CREATE TABLE IF NOT EXISTS 
 			datasets 
 			(
 			location varchar(1000),
+			id string(100),
 		 '''
-	cursor.execute('\n'.join([header] + [",\n".join(['%s varchar(255)' % X for X in items[1:]])] + [')']))
+	cursor.execute('\n'.join([header] + [",\n".join(['%s varchar(255)' % X for X in items[2:]])] + [')']))
 
 	cursor.execute('SELECT * FROM datasets').fetchall()
 	column_names = [X[0] for X in cursor.description]
@@ -166,7 +188,8 @@ def create_user_dataset_table(cursor):
  			name varchar(100),
 			location varchar(1000),
 			userid varchar(100),
-			count integer
+			count integer,
+			has_history integer
 			)
 		 '''
 	cursor.execute(header)
@@ -196,7 +219,6 @@ def create_assembly_table(cursor):
 ## Garbage cleaning 
 ###########################################
 
-
 def clean_database(cursor, days):
 	for location in cursor.execute('SELECT location FROM cache WHERE julianday(\'now\') - julianday(last_query) > %i' % days).fetchall():
 		if verbose:
@@ -206,7 +228,7 @@ def clean_database(cursor, days):
 	cursor.execute('DELETE FROM cache WHERE julianday(\'now\') - julianday(last_query) > %i' % days)
 
 ###########################################
-## Search datasets
+## Dataset attributes
 ###########################################
 
 def get_dataset_attributes_2(cursor):
@@ -234,6 +256,24 @@ def attribute_selector(attribute, params):
 def denormalize_params(params):
 	return dict(("%s_%i" % (attribute, index),value) for attribute in params for (index, value) in enumerate(params[attribute]))
 
+def get_dataset_locations(cursor, params):
+	# Quick check that all the keys are purely alphanumeric to avoid MySQL injections
+	assert not any(re.match('\W', X) is not None for X in params)
+	query = " AND ".join(attribute_selector(X, params) for X in params)
+	if len(query) > 0:
+		query = ' WHERE ' + query 
+	if verbose:
+		print 'Query: SELECT location FROM datasets' + query
+		print 'Where:' + str(denormalize_params(params))
+	res = cursor.execute('SELECT location FROM datasets' + query, denormalize_params(params)).fetchall()
+	if verbose:
+		print 'Found:\n' + "\n".join(X[0] for X in res)
+	return sorted(X[0] for X in res)
+
+###########################################
+## Annotation files
+###########################################
+
 def get_annotation_dataset_locations(cursor, names, userid = None):
 	locations = []
 	for name in names:
@@ -253,28 +293,9 @@ def get_annotation_dataset_description(cursor, name):
 	else:
 		return {'ERROR'}
 
-def get_chromosomes(cursor):
-	return [X[0] for X in cursor.execute('SELECT name FROM chromosomes').fetchall()]
-
-def run(cmd):
-	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	ret = p.wait()
-	out, err = p.communicate()
-	if ret != 0:
-		sys.stdout.write("Failed in running %s\n" % (cmd))
-		sys.stdout.write("OUTPUT:\n%s\n" % (out))
-		sys.stdout.write("ERROR:\n%s\n" % (out))
-		raise BaseException
-	return out
-
-def count_regions(location):
-	if location[-4:] == '.bed' or location[-4:] == '.txt':
-		return int(run('cat %s | wc -l' % location).strip())
-	elif location[-3:] == '.bb':
-		return int(run('bigBedToBed %s stdout | grep -v ^# | wc -l' % (location)).strip())
-	else:
-		print location
-		raise BaseException
+###########################################
+## Assemblies and chromosomes
+###########################################
 
 def register_new_chromosomes(cursor, location):
 	file = open(location)
@@ -294,6 +315,21 @@ def get_assembly_file(cursor):
 		return res[0][0]
 	else:
 		raise
+def get_chromosomes(cursor):
+	return [X[0] for X in cursor.execute('SELECT name FROM chromosomes').fetchall()]
+
+###########################################
+## Annotations
+###########################################
+
+def count_regions(location):
+	if location[-4:] == '.bed' or location[-4:] == '.txt':
+		return int(run('cat %s | wc -l' % location).strip())
+	elif location[-3:] == '.bb':
+		return int(run('bigBedToBed %s stdout | grep -v ^# | wc -l' % (location)).strip())
+	else:
+		print location
+		raise BaseException
 
 def add_annotation_dataset(cursor, location, name, description):
 	cursor.execute('INSERT INTO annotation_datasets (name,location,description, count) VALUES (?,?,?,?)', (name, location, description, count_regions(location)))
@@ -308,19 +344,9 @@ def get_user_dataset_locations(cursor, names, userid):
 			return []
 	return locations
 
-def get_dataset_locations(cursor, params):
-	# Quick check that all the keys are purely alphanumeric to avoid MySQL injections
-	assert not any(re.match('\W', X) is not None for X in params)
-	query = " AND ".join(attribute_selector(X, params) for X in params)
-	if len(query) > 0:
-		query = ' WHERE ' + query 
-	if verbose:
-		print 'Query: SELECT location FROM datasets' + query
-		print 'Where:' + str(denormalize_params(params))
-	res = cursor.execute('SELECT location FROM datasets' + query, denormalize_params(params)).fetchall()
-	if verbose:
-		print 'Found:\n' + "\n".join(X[0] for X in res)
-	return sorted(X[0] for X in res)
+###########################################
+## General search 
+###########################################
 
 def get_locations(cursor, params, userid):
 	if 'annot_name' in params:
@@ -334,30 +360,30 @@ def get_locations(cursor, params, userid):
 ## Search cache
 ###########################################
 
-def reset_time_stamp(cursor, cmd):
-	cursor.execute('UPDATE cache SET last_query= date(\'now\') WHERE query = \'%s\'' % cmd)
+def reset_time_stamp(cursor, location):
+	cursor.execute('UPDATE cache SET last_query= date(\'now\') WHERE location = \'%s\'' % location)
 
-
-def get_precomputed_location(cursor, cmd):
-	reports = cursor.execute('SELECT location FROM cache WHERE query = ?', (cmd,)).fetchall()
+def get_precomputed_location(cursor, merge, mergeA, filesA, mergeB, filesB):
+	filesA_str = " ".join(filesA)
+	if filesB is None:
+		filesB_str = None
+	else:
+		filesB_str = " ".join(filesB)
+	reports = cursor.execute('SELECT location FROM cache WHERE merge = ? AND mergeA = ? AND filesA = ? AND mergeB = ? AND filesB = ?', (merge, mergeA, filesA_str, mergeB, filesB_str)).fetchall()
 	if len(reports) > 0:
-		reset_time_stamp(cursor, cmd)
 		if verbose:
 			print 'Found pre-computed file for query: %s' % cmd
 			print reports[0]
-		return reports[0][0]
+		location = reports[0][0]
+		reset_time_stamp(cursor, location)
+		return location
 	else:
 		if verbose:
 			print 'Did not find pre-computed file for query: %s' % cmd
 		return None
 
-def reuse_or_write_precomputed_location(cursor, cmd, working_directory):
-	pre_location = get_precomputed_location(cursor, cmd)
-	if pre_location is not None:
-		return pre_location, pre_location, False
-	else:
-		fh, destination = tempfile.mkstemp(suffix='.bw',dir=working_directory)
-		return 'write %s %s' % (destination, cmd), destination, True
+def is_tracked(cursor, location):
+	return cursor.execute('SELECT COUNT(*) FROM cache WHERE location = ?', (location,)).fetchall()[0][0] > 0
 
 def copy_to_longterm(data, config):
 	if 's3_bucket' in config:
@@ -443,13 +469,13 @@ def launch_quick_compute(conn, cursor, fun_merge, fun_A, data_A, fun_B, data_B, 
 	return destination
 
 def make_normalised_form(fun_merge, fun_A, data_A, fun_B, data_B):
-	cmd_A = " ".join([fun_A] + data_A)
+	cmd_A = funA + ":" + " ".join(data_A)
 	if data_B is not None:
 		if fun_B is not None:
-			cmd_B = " ".join([fun_B] + data_B)
+			cmd_B = funB + ":" + " ".join(data_B)
 		else:
 			cmd_B = " ".join(data_B)
-		res = "; ".join([fun_merge, cmd_A, cmd_B])
+		res = ";".join([fun_merge, cmd_A, cmd_B])
 	else:
 		res = cmd_A
 
@@ -477,10 +503,8 @@ def form_filters(cursor, filters, userid):
 def request_compute(conn, cursor, options, config):
 	fun_A = form_filters(cursor, options.filters_a, options.userid) + " " + options.wa
 	data_A = get_locations(cursor, options.a, options.userid)
-	options.countA = len(data_A)
 	if len(data_A) == 0:
 		 return {'status':'INVALID'}
-	cmd_A = " ".join([fun_A] + data_A)
 
 	if options.b is not None:
 		if options.wb is not None:
@@ -494,10 +518,8 @@ def request_compute(conn, cursor, options, config):
 	else:
 		data_B = None
 		fun_B = None
-		cmd_B = None
 
-	normalised_form = make_normalised_form(options.fun_merge, fun_A, data_A, fun_B, data_B)
-	prior_result = get_precomputed_location(cursor, normalised_form)
+	prior_result = get_precomputed_location(cursor, options.fun_merge, fun_A, data_A, fun_B, data_B)
 	if prior_result is None:
 		destination = launch_quick_compute(conn, cursor, options.fun_merge, fun_A, data_A, fun_B, data_B, options, config)
 		if os.stat(destination).st_size == 0:
@@ -506,11 +528,16 @@ def request_compute(conn, cursor, options, config):
 			copy_to_longterm(destination, config)
 			if destination[-4:] == ".txt":
 				copy_to_longterm(destination + ".png", config)
-		cursor.execute('INSERT INTO cache (query,last_query,location) VALUES ("%s",date("now"),"%s")' % (normalised_form, destination))
+		filesA_str = " ".join(data_A)
+		if data_B is None:
+			filesB_str = None
+		else:
+			filesB_str = " ".join(data_B)
+		cursor.execute('INSERT INTO cache (merge,mergeA,filesA,mergeB,filesB,location,userid,last_query) VALUES (?,?,?,?,?,?,?,date("now"))', (options.fun_merge, fun_A, filesA_str, fun_B, filesB_str, destination, options.userid))
 		return {'location': destination, 'status':'DONE'}
 	else:
-		reset_time_stamp(cursor, normalised_form)
-		return {'location':prior_result, 'status':'DONE'}
+		reset_time_stamp(cursor, prior_result)
+		return {'location': prior_result, 'status':'DONE'}
 
 ###########################################
 ## Upload file
@@ -520,11 +547,10 @@ def fetch_user_datasets(cursor, userid):
 	return cursor.execute('SELECT * FROM user_datasets WHERE userid=?', (userid,)).fetchall()
 
 def get_user_datasets(cursor, userid):
-	return {'files': [X[0] for X in cursor.execute('SELECT name FROM user_datasets WHERE userid=?', (userid,)).fetchall()]}
+	return {'files': dict((X[0], X[1]) for X in cursor.execute('SELECT name, has_history FROM user_datasets WHERE userid=?', (userid,)).fetchall())}
 
 def remove_user_datasets(cursor, name, userid):
 	locations = get_user_dataset_locations(cursor, [name], userid)
-	map(os.remove, locations)
 	cursor.execute('DELETE FROM user_datasets WHERE name=? AND userid=?', (name, userid))
 	return {'status':'SUCCESS'}
 
@@ -570,8 +596,8 @@ def check_file_integrity(file, cursor):
 		
 	return {'status':'MALFORMED_INPUT','format':'unrecognized'}
 
-def register_user_dataset(cursor, file, description, userid): 
-	cursor.execute('INSERT INTO user_datasets (name,location,userid,count) VALUES (?,?,?,?)', (description, file, userid, count_regions(file)))
+def register_user_dataset(cursor, file, description, userid, has_history=False): 
+	cursor.execute('INSERT INTO user_datasets (name,location,userid,count,has_history) VALUES (?,?,?,?,?)', (description, file, userid, count_regions(file), int(has_history)))
 
 def name_already_used(cursor, description, userid):
 	return len(get_user_dataset_locations(cursor, [description], userid)) > 0 or len(get_annotation_dataset_locations(cursor, [description])) > 0
@@ -610,6 +636,63 @@ def save_dataset(cursor, dir, fileitem, description, userid):
 	except:
 		raise
 		return {'status':'UPLOAD_FAILED','url':url}
+
+def reassign_dataset(cursor, filename, description, userid):
+	if name_already_used(cursor, description, userid):
+		return {'status':'NAME_USED','name':description}
+	else:
+		register_user_dataset(cursor, filename, description, userid, has_history=True)
+		return {'status':'UPLOADED','name':description, 'has_history':1}
+
+###########################################
+## History
+###########################################
+
+def get_dataset_history(cursor, location):
+	res = cursor.execute('SELECT id FROM datasets WHERE location=?', (location,)).fetchall()
+	if len(res) > 0:
+		return "<LOCAL_DATA:%s>" % res[0][0]
+	else:
+		return None
+	
+def get_annotation_history(cursor, location):
+	res = cursor.execute('SELECT merge, mergeA, filesA, mergeB, filesB, userid FROM cache WHERE location=?', (location,)).fetchall()
+	if len(res) > 0:
+		merge, mergeA, filesA, mergeB, filesB, userid = res[0]
+		if filesA is not None:
+			filesA = " ".join([get_location_history(cursor, X, userid) for X in filesA.split(" ")]) + " :"
+		if filesB is not None:
+			filesB = " ".join([get_location_history(cursor, X, userid) for X in filesB.split(" ")]) + " :"
+		return " ".join(filter(lambda X: X is not None, [merge, mergeA, filesA, mergeB, filesB]))
+	else:
+		return None
+
+def get_location_history(cursor, location, userid):
+	dataset_string = get_dataset_history(cursor, location)
+	if dataset_string is not None:
+		return dataset_string
+
+	annotation_string = get_annotation_history(cursor, location)
+	if annotation_string is not None:
+		return annotation_string
+
+	user_string = get_user_annotation_history(cursor, location, userid)
+	if user_string is not None:
+		return user_string
+
+	return "<UNKNOWN:%s>" % location
+
+def get_named_file_history(cursor, name, userid):
+	res = cursor.execute('SELECT location, has_history, userid FROM user_datasets WHERE name=? AND userid=?', (name,userid)).fetchall()
+	if len(res) > 0:
+		location = res[0][0]
+		has_history = res[0][1]
+		if has_history:
+			return get_location_history(cursor, location, userid)
+		else:
+			return "<USER_DATA:%s>" % name
+	else:
+		return None
 
 ###########################################
 ## Main

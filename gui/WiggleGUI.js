@@ -44,6 +44,8 @@ var attribute_values = null;
 
 var annotations = null;
 
+var user_annotations = null;
+
 var reduction_opts = {"Intersection":"unit mult", "Union":"unit sum"};
 
 var comparison_opts = {"Intersection":"unit mult", "Union":"unit sum", "Difference": "unit diff"};
@@ -198,12 +200,19 @@ function create_all_selectors() {
 // Creating the personal reference selectors 
 //////////////////////////////////////////
 
-function add_personal_annotation(annotation) {
+function add_personal_annotation_to_references(annotation) {
   var row = $("<tr>").appendTo($('#refs')).attr("value", annotation);
   $("<td>").appendTo(row).append($("<input>").attr("class", "select_annot").attr("type","checkbox").attr("value", annotation));
   $("<td>").appendTo(row).text("\t" + annotation);
+  if (user_annotations[annotation]) {
+    $("<td>").appendTo(row).attr("align","right").append(
+      $("<input>").attr("id","history").attr("type","image").attr("src","images/info.png").attr("value",annotation).attr("title", "Info")
+    );
+  }
   $("<td>").appendTo(row);
+}
 
+function add_personal_annotation_to_personal_list(annotation) {
   var row = $("<tr>").appendTo($('#myannots')).attr("value", annotation);
   $("<td>").appendTo(row).attr("align","right").append(
     $("<input>").attr("id","share").attr("type","image").attr("src","images/share.cropped.png").attr("value",annotation).attr("title", "View, download or share")
@@ -211,7 +220,20 @@ function add_personal_annotation(annotation) {
   $("<td>").appendTo(row).attr("align","right").append(
     $("<input>").attr("id","trash").attr("type","image").attr("src","images/trash.cropped.png").attr("value",annotation).attr("title", "Delete")
   );
-  $("<td>").appendTo(row).text("\t" + annotation);
+  if (user_annotations[annotation]) {
+    $("<td>").appendTo(row).attr("align","right").append(
+      $("<input>").attr("id","history").attr("type","image").attr("src","images/info.png").attr("value",annotation).attr("title", "Info")
+    );
+  } else {
+    $("<td>").appendTo(row);
+  }
+
+  $("<td>").appendTo(row).text("\t\t" + annotation);
+}
+
+function add_personal_annotation(annotation) {
+  add_personal_annotation_to_references(annotation)
+  add_personal_annotation_to_personal_list(annotation)
 }
 
 function remove_personal_annotation(annotation) {
@@ -236,18 +258,24 @@ function remove_personal_filters(annotation) {
   );
 }
 
+function update_default_annotation_name(name, annotation) {
+  if (name == annotation) {
+    var tail = annotation.substr(14);
+    if (tail == "") {
+      return "My Annotation 2";
+    } else {
+      var new_index = parseInt(tail) + 1;
+      return "My Annotation " + new_index.toString();
+    } 
+  } else {
+    return name;
+  }
+}
+
 function update_default_annotation_names(annotation) {
   $("#upload").find("input[id$='description']").each( 
     function (index, element) {
-      if ($(element).attr("value") == annotation) {
-        var tail = annotation.substr(14);
-        if (tail == "") {
-          $(element).attr("value", "My Annotation 2");
-        } else {
-          var new_index = parseInt(tail) + 1;
-          $(element).attr("value", "My Annotation " + new_index.toString());
-        } 
-      }
+      $(element).attr("value", update_default_annotation_name(name, annotation));
     }
   );
 }
@@ -259,12 +287,15 @@ function insert_personal_annotation(annotation) {
 }
 
 function insert_personal_annotations(data) {
-  data['files'].map(insert_personal_annotation);
+  user_annotations = data['files'];
+  Object.keys(user_annotations).map(insert_personal_annotation);
 }
 
 function add_personal_annotations() {
   $("#myannots").on("click","#trash", confirm_remove_personal_file);
   $("#myannots").on("click","#share", share_personal_file);
+  $("#myannots").on("click","#history", history);
+  $("#refs").on("click","#history", history);
   jQuery.getJSON(CGI_URL + "myannotations=1&userid=" + user_ID()).done(insert_personal_annotations).fail(catch_JSON_error);
 }
 
@@ -296,6 +327,19 @@ function display_annotation_location(data) {
 function share_personal_file() {
   var annotation = $(this).attr('value');
   jQuery.getJSON(CGI_URL + "&userid=" + user_ID() + "&share_annotation=" + annotation).done(display_annotation_location).fail(catch_JSON_error);
+}
+
+function display_history(data) {
+  var modal = $('#History_modal').clone();
+  modal.find('#myModalLabel').text(data['name']);
+  modal.find('#name').text(data['name']);
+  modal.find('#history').text(data['history']);
+  modal.modal();
+}
+
+function history() {
+  var annotation = $(this).attr('value');
+  jQuery.getJSON(CGI_URL + "&userid=" + user_ID() + "&history=" + annotation).done(display_history).fail(catch_JSON_error);
 }
 
 //////////////////////////////////////////
@@ -457,6 +501,7 @@ function save_result_file() {
   var modal = $(this).parents('.modal');
   var name = modal.find('#name').val();
   var url = modal.find('#url').attr("href");
+  user_annotations[name] = 1;
   $.getJSON(CGI_URL + "userid=" + user_ID() + "&uploadUrl=" + url + "&description=" + name).done(report_upload).fail(catch_JSON_error);
 }
 
@@ -520,6 +565,7 @@ function upload_url() {
 function report_upload(data) {
   reset_buttons();
   if (data["status"] == "UPLOADED") {
+      user_annotations[data['name']] = data['has_history'];
       insert_personal_annotation(data['name'])
       var modal = $('#Success_upload_modal').clone();
       modal.modal();

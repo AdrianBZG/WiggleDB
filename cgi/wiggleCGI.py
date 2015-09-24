@@ -47,6 +47,21 @@ def location2url(location):
 		base_url = config['base_data_url']
 	return re.sub(config['working_directory'], base_url, location)		
 
+def url2location(cursor, url):
+	if 's3_bucket' in config:
+		base_url = 'http://s3-%s.amazonaws.com/%s/' % (config['s3_region'], config['s3_bucket'])
+	else:
+		base_url = config['base_data_url']
+
+	if re.match(base_url, url) is None:
+		return None
+	else:
+		location = re.sub(base_url, config['working_directory'], url)		
+		if wiggledb.wiggleDB.is_tracked(cursor, location):
+			return location
+		else:
+			return None
+
 def report_result(result):
 	url = location2url(result['location'])
 
@@ -76,7 +91,11 @@ def main():
 			print json.dumps({"annotations": [X[0] for X in wiggledb.wiggleDB.get_annotations(cursor)]})
 
 		elif 'uploadUrl' in form:
-			print json.dumps(wiggledb.wiggleDB.upload_dataset(cursor, config['working_directory'], form['uploadUrl'].value, form['description'].value, form['userid'].value))
+			location = url2location(cursor, form['uploadUrl'].value)
+			if location is None:
+				print json.dumps(wiggledb.wiggleDB.upload_dataset(cursor, config['working_directory'], form['uploadUrl'].value, form['description'].value, form['userid'].value))
+			else:
+				print json.dumps(wiggledb.wiggleDB.reassign_dataset(cursor, location, form['description'].value, form['userid'].value))
 
 		elif 'uploadFile' in form:
 			print json.dumps(wiggledb.wiggleDB.save_dataset(cursor, config['working_directory'], form['file'], form['description'].value, form['userid'].value))
@@ -99,6 +118,10 @@ def main():
 			else:
 				print json.dumps({'status':'ERROR'})
 			
+		elif 'history' in form:
+			name = form['history'].value
+			userid = form['userid'].value
+			print json.dumps({'name':name, 'history':wiggledb.wiggleDB.get_named_file_history(cursor, name, userid)})
 
 		elif 'wa' in form:
 			options = WiggleDBOptions()
