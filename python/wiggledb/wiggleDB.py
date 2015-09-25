@@ -235,7 +235,7 @@ def get_dataset_attributes_2(cursor):
 	return [X[1] for X in cursor.execute('PRAGMA table_info(datasets)').fetchall()]
 
 def get_dataset_attributes(cursor):
-	return list(set(get_dataset_attributes_2(cursor)) - set(["location"]))
+	return list(set(get_dataset_attributes_2(cursor)) - set(["location","id"]))
 
 def get_attribute_values_2(cursor, attribute):
 	return [X[0] for X in cursor.execute('SELECT DISTINCT %s FROM datasets' % (attribute)).fetchall()]
