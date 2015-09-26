@@ -27,12 +27,12 @@ cp -r python/wiggletools/ /usr/local/lib/python2.7/dist-packages
 Prepare the data
 ----------------
 
-1. Prepare a tab-delimited file, say datasets.tsv. The first header must be:	
+1. Prepare a tab-delimited file, say datasets.tsv. The first two headers must be:	
 
 	```
-	location
+	location	id
 	```
-	and its content should be the absolute path to the file. All other columns are your business. Try to select meaningful headers, and remove columns with too many values.
+	and their content should be the absolute path to the file and a unique identifier (used for reporting). All other columns are your business. Try to select meaningful headers, and remove columns with too many values.
 
 2. Prepare a tab-delimited file, say annotations.tsv with annotation metadata:
 	- location of a file location
@@ -48,7 +48,7 @@ Prepare the data
 	```	
 	wiggleDB.py --database database.sqlite3 --load datasets.tsv
 	wiggleDB.py --database database.sqlite3 --load_annotations annotations.tsv 
-	wiggleDB.py --database database.sqlite3 --load_annotations GRCh38 chromosome_lengths.txt 
+	wiggleDB.py --database database.sqlite3 --load_assembly GRCh38 chromosome_lengths.txt 
 	chmod 777 database.sqlite3
 	```
 
