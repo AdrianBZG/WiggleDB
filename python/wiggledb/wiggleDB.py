@@ -365,10 +365,7 @@ def reset_time_stamp(cursor, location):
 
 def get_precomputed_location(cursor, merge, mergeA, filesA, mergeB, filesB):
 	filesA_str = " ".join(filesA)
-	if filesB is None:
-		filesB_str = None
-	else:
-		filesB_str = " ".join(filesB)
+	filesB_str = " ".join(filesB)
 	reports = cursor.execute('SELECT location FROM cache WHERE merge = ? AND mergeA = ? AND filesA = ? AND mergeB = ? AND filesB = ?', (merge, mergeA, filesA_str, mergeB, filesB_str)).fetchall()
 	if len(reports) > 0:
 		if verbose:
@@ -421,11 +418,11 @@ def make_barchart(counts, total, rev_counts, totals, labels, out, format='pdf'):
 def launch_quick_compute(conn, cursor, fun_merge, fun_A, data_A, fun_B, data_B, options, config):
 	cmd_A = " ".join([fun_A] + data_A + [':'])
 
-	if data_B is not None:
+	if len(data_B) > 0:
 		merge_words = fun_merge.split(' ')
 
 		assert fun_merge is not None
-		if fun_B is not None:
+		if fun_B != "":
 			cmd_B = " ".join([fun_B] + data_B + [':'])
 		else:
 			cmd_B = " ".join(data_B)
@@ -501,6 +498,8 @@ def form_filters(cursor, filters, userid):
 		return ""
 
 def request_compute(conn, cursor, options, config):
+	if options.fun_merge is None:
+		options.fun_merge = ""
 	fun_A = form_filters(cursor, options.filters_a, options.userid) + " " + options.wa
 	data_A = get_locations(cursor, options.a, options.userid)
 	if len(data_A) == 0:
@@ -510,14 +509,14 @@ def request_compute(conn, cursor, options, config):
 		if options.wb is not None:
 			fun_B = form_filters(cursor, options.filters_b, options.userid) + " " + options.wb
 		else:
-			fun_B = None
+			fun_B = "" 
 		data_B = get_locations(cursor, options.b, options.userid)
 		options.countB = len(data_B)
 		if len(data_B) == 0:
 			 return {'status':'INVALID'}
 	else:
-		data_B = None
-		fun_B = None
+		data_B = []
+		fun_B = "" 
 
 	prior_result = get_precomputed_location(cursor, options.fun_merge, fun_A, data_A, fun_B, data_B)
 	if prior_result is None:
