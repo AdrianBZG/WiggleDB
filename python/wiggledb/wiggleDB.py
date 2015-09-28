@@ -647,6 +647,13 @@ def reassign_dataset(cursor, filename, description, userid):
 ## History
 ###########################################
 
+def get_user_annotation_history(cursor, location, userid):
+	res = cursor.execute('SELECT name FROM user_datasets WHERE location=? AND userid = ?', (location,userid)).fetchall()
+	if len(res) > 0:
+		return "<LOCAL_DATA:%s>" % res[0][0]
+	else:
+		return None
+
 def get_dataset_history(cursor, location):
 	res = cursor.execute('SELECT id FROM datasets WHERE location=?', (location,)).fetchall()
 	if len(res) > 0:
@@ -658,11 +665,11 @@ def get_annotation_history(cursor, location):
 	res = cursor.execute('SELECT merge, mergeA, filesA, mergeB, filesB, userid FROM cache WHERE location=?', (location,)).fetchall()
 	if len(res) > 0:
 		merge, mergeA, filesA, mergeB, filesB, userid = res[0]
-		if filesA is not None:
+		if filesA != "":
 			filesA = " ".join([get_location_history(cursor, X, userid) for X in filesA.split(" ")]) + " :"
-		if filesB is not None:
+		if filesB != "":
 			filesB = " ".join([get_location_history(cursor, X, userid) for X in filesB.split(" ")]) + " :"
-		return " ".join(filter(lambda X: X is not None, [merge, mergeA, filesA, mergeB, filesB]))
+		return " ".join([merge, mergeA, filesA, mergeB, filesB])
 	else:
 		return None
 
