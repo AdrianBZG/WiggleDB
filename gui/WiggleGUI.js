@@ -275,9 +275,14 @@ function update_default_annotation_name(name, annotation) {
 function update_default_annotation_names(annotation) {
   $("#upload").find("input[id$='description']").each( 
     function (index, element) {
-      $(element).attr("value", update_default_annotation_name(name, annotation));
+      $(element).attr("value", update_default_annotation_name($(element).attr("value"), annotation));
     }
   );
+  $("#Success_modal").find("#name").each(
+    function (index, element) {
+      $(element).attr("value", update_default_annotation_name($(element).attr("value"), annotation));
+    }
+  )
 }
 
 function insert_personal_annotation(annotation) {
