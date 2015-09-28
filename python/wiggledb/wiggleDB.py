@@ -109,9 +109,10 @@ def run(cmd):
 	ret = p.wait()
 	out, err = p.communicate()
 	if ret != 0:
-		sys.stdout.write("Failed in running %s\n" % (cmd))
-		sys.stdout.write("OUTPUT:\n%s\n" % (out))
-		sys.stdout.write("ERROR:\n%s\n" % (out))
+		if verbose:
+			sys.stdout.write("Failed in running %s\n" % (cmd))
+			sys.stdout.write("OUTPUT:\n%s\n" % (out))
+			sys.stdout.write("ERROR:\n%s\n" % (out))
 		raise BaseException
 	return out
 
@@ -328,7 +329,6 @@ def count_regions(location):
 	elif location[-3:] == '.bb':
 		return int(run('bigBedToBed %s stdout | grep -v ^# | wc -l' % (location)).strip())
 	else:
-		print location
 		raise BaseException
 
 def add_annotation_dataset(cursor, location, name, description):
