@@ -456,12 +456,10 @@ def launch_quick_compute(conn, cursor, fun_merge, fun_A, data_A, fun_B, data_B, 
 			fh, destination = tempfile.mkstemp(suffix='.bed',dir=options.working_directory)
 			os.remove(destination)
 			run(" ".join(['wiggletools','write_bg', destination, fun_merge, cmd_A, cmd_B]))
-			run(" ".join(['wigToBigWig',destination, get_assembly_file(cursor), destination + '.bw']))
 	else:
 		fh, destination = tempfile.mkstemp(suffix='.bed',dir=options.working_directory)
 		os.remove(destination)
 		run(" ".join(['wiggletools','write_bg', destination, cmd_A]))
-		run(" ".join(['wigToBigWig',destination, get_assembly_file(cursor), destination + '.bw']))
 
 	return destination
 
@@ -527,6 +525,8 @@ def request_compute(conn, cursor, options, config):
 			copy_to_longterm(destination, config)
 			if destination[-4:] == ".txt":
 				copy_to_longterm(destination + ".png", config)
+			if destination[-4:] == ".bed":
+				run(" ".join(['wigToBigWig',destination, get_assembly_file(cursor), destination + '.bw']))
 		filesA_str = " ".join(data_A)
 		if data_B is None:
 			filesB_str = None
