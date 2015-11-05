@@ -31,7 +31,7 @@
           <li><a href="#compare" data-toggle="tab">Comparison</a></li>
           <li><a href="#annotate" data-toggle="tab">Annotation</a></li>
           <li><a href="#upload" data-toggle="tab">My Annotations</a></li>
-          <li><a href="#about" data-toggle="tab">About</a></li>
+          <li><a href="#about" data-toggle="tab">About/Help</a></li>
         </ul>
 
         <div class="tab-content" id="myTabContent">
@@ -351,9 +351,25 @@
           </div>
 
           <div class="tab-pane" id="about">
-            <br>
-            <p> GenomeStats was developed at <a href="http://ebi.ac.uk">EMBL-EBI</a> in collaboration with the <a href="http://blueprint-epigenome.eu">Blueprint consortium.</a></p>
+            <h4>Purpose</h4>
+            <p>This tools allows you to remotely request summaries of data so that you do not need to download all the datasets stored on this server, nor install specialised bioinformatic tools</p>
+            <h4>Summary tab</h4>
+            <p>The Summary tab allows you to select a number of datasets and request a summary.</p>
+            <p>Use the drop-down search menus, selecting for any metadata criterion. The form automatically indicates how many datasets are selected. Once you are happy with your selection, you can ask for the <i>union</i> (regions which are covered in at least one dataset in the selection) or the <i>intersection</i> (regions covered in all the datasets of the selection.</p>
+            <p>You can finally filter your summary using the optional filters, based on named annotations (see below). You can select regions which are within or farther than a given distance from that annotations. You can add as many filters as you wish</p>
+            <p>Having selected your summary, click "Compute". A pop-up window will inform you when the results are ready. You can then view them in Ensembl, view/download them in test format, or save them on our server under the name of your choice.</p>
+            <h4>Comparison tab</h4>
+            <p>In the summary tab you created a summary of datasets, in the comparison tab, you create two parallel summaries, and compare their outputs.</p>
+            <p>The comparison is either a union (see above), an intersection (see above) or a <i>difference</i> (regions which are covered by the summary on the left hand but <b>not</b> by the summary on the right.</p>
+            <h4>Annotation tab</h4>
+            <p>You can also compare your summary to <i>named annotations</i>. These are either pre-loaded reference annotations along the genome, or result files you decided to save. You can compute as above a union, intersection or difference, but you can also request an overlap analysis which evaluates how well the datasets selected on the left are in predicting the annotations on the right.</p>
+            <h4>My annotations</h4>
+            <p>If you have a list of regions of interest, either on your computer or on a public site, stored in <a href="https://genome.ucsc.edu/FAQ/FAQformat.html#format1">Bed format</a>, you can upload them onto the server under the name of your choice.<p>
+            <p>This tab also remembers what files you saved. For any file, you can request a direct link to view/download the file (link icon), or delete the file (rubbish bin icon). Optionally, for saved results, clicking on the question mark will produce the history of the file, as described in <a href="https://github.com/Ensembl/WiggleTools/blob/master/README.md">WiggleTools' format</a>. 
+            <h4>Credits</h4>
+            <p> GenomeStats was developed at <a href="http://www.ebi.ac.uk">EMBL-EBI</a> in collaboration with the <a href="http://blueprint-epigenome.eu">Blueprint consortium.</a></p>
             <p> For more information contact: <a href="mailto:helpdesk@ensembl.org">helpdesk@ensembl.org</a></p>
+            <p> The data contained on this server is subject to the following <a href="http://www.blueprint-epigenome.eu/index.cfm?p=A73C2005-A2D3-0FDE-EF9BC386B65DF073">data reuse statement</a>.<p>
             <p> If you use this tool, please cite:<br> 
                 <a href="http://bioinformatics.oxfordjournals.org/content/30/7/1008">Daniel R. Zerbino, Nathan Johnson, Thomas Juettemann, Steven P. Wilder and Paul Flicek. WiggleTools: parallel processing of large collections of genome-wide datasets for visualization and statistical analysis. 2014 Bioinformatics 30(7):1008-1009.</a></i>
             </p>
