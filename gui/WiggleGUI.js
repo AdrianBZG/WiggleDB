@@ -376,6 +376,8 @@ function add_annotations() {
   annotations.map(add_annotation);
   if (getCookie("username") != "" && getCookie("username") != null) {
     add_personal_annotations();
+  } else {
+    user_annotations = [];
   }
 }
 
