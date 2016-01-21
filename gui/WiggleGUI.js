@@ -46,11 +46,11 @@ var annotations = null;
 
 var user_annotations = null;
 
-var reduction_opts = {"Intersection":"unit mult", "Union":"unit sum"};
+var reduction_opts = {"Intersection of regions":"unit mult", "Union of regions":"unit sum"};
 
-var comparison_opts = {"Intersection":"unit mult", "Union":"unit sum", "Difference": "unit diff"};
+var comparison_opts = {"Intersection of regions":"unit mult", "Union of regions":"unit sum", "Left hand regions that do NOT overlap right hand regions": "unit diff"};
 
-var annotation_opts = {"Intersection":"unit mult", "Union":"unit sum", "Difference": "unit diff", "Overlap frequency": "overlaps"};
+var annotation_opts = {"Intersection of regions":"unit mult", "Union of regions":"unit sum", "Left hand regions that do NOT overlap right hand regions": "unit diff", "Overlap frequency": "overlaps"};
 
 //////////////////////////////////////////
 // Creating multiselects 
