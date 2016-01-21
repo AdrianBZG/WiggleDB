@@ -393,30 +393,35 @@ def get_annotation_counts(cursor, userid):
 		counts += [(X[0], X[1]) for X in cursor.execute('SELECT name, count FROM user_datasets WHERE userid=?', (userid,)).fetchall()]
 	return dict(counts)
 
-def make_barchart(counts, total, rev_counts, totals, labels, out, format='pdf'):
+def make_barchart(annotations, counts, total, rev_counts, totals, out, format='png'):
 	width = 0.35
 
-	ind = numpy.arange(len(labels)) - width/2 
-	heights = [X/float(total) for X in counts]
+	ind = numpy.arange(len(annotations)) - width/2 
+	heights = [counts[X]/float(total) for X in annotations]
 	assert all(X <= 1 and X >= 0 for X in heights), (counts, total, heights)
 	errors = [ math.sqrt(2*X*(1-X) / total) for X in heights ]
 	pyplot.bar(ind, heights, width, yerr=errors, color='b')
 
-	ind = numpy.arange(len(labels)) + width/2 
-	heights = [X/float(Y) for X, Y in zip(rev_counts, totals)]
+	ind = numpy.arange(len(annotations)) + width/2 
+	heights = [rev_counts[X]/float(totals[X]) for X in annotations]
 	assert all(X <= 1 and X >= 0 for X in heights), (zip(rev_counts, totals), heights)
-	errors = [ math.sqrt(2*X*(1-X) / Y) for X, Y in zip(heights, totals) ]
+	errors = [ math.sqrt(2*X*(1-X) / totals[Y]) for X, Y in zip(heights, annotations) ]
 	pyplot.bar(ind, heights, width, yerr=errors, color='r')
 
 	blue_patch = mpatches.Patch(color='blue', label='Precision')
 	red_patch = mpatches.Patch(color='red', label='Recall')
 	pyplot.legend((blue_patch, red_patch), ('Specificity', 'Sensitivity'))
 
-	pyplot.xticks(ind, labels)
+	pyplot.xticks(rotation=70)
+	pyplot.xticks(ind, annotations)
+	pyplot.tight_layout()
 	pyplot.savefig(out, format=format)
 
 def launch_quick_compute(conn, cursor, fun_merge, fun_A, data_A, fun_B, data_B, options, config):
 	cmd_A = " ".join([fun_A] + data_A + [':'])
+
+	fh, destination = tempfile.mkstemp(suffix='.bed',dir=options.working_directory)
+	os.remove(destination)
 
 	if len(data_B) > 0:
 		merge_words = fun_merge.split(' ')
@@ -429,39 +434,39 @@ def launch_quick_compute(conn, cursor, fun_merge, fun_A, data_A, fun_B, data_B, 
 
 		if merge_words[0] == 'overlaps':
 			assert "annot_name" in options.b
-			fh, destination = tempfile.mkstemp(suffix='.txt',dir=options.working_directory)
-			total = int(run("wiggletools write_bg - %s | wc -l" % cmd_A))
+			fh, destination2 = tempfile.mkstemp(suffix='.txt',dir=options.working_directory)
+			run(" ".join(['wiggletools','write_bg', destination, cmd_A]))
+			total = int(run("cat %s | wc -l" % destination))
 			if total > 0:
-				counts = []
-				for annotation in data_B:
-					counts.append(int(run('wiggletools write_bg - overlaps %s %s | wc -l' % (annotation, cmd_A)).strip()))
+				annotations = options.b['annot_name']
+				files = dict(zip(annotations, data_B))
+
+				counts = dict(
+					(annotation, int(run('wiggletools write_bg - overlaps %s %s | wc -l' % (files[annotation], destination)).strip()))
+					for annotation in annotations
+				)
 			
-				rev_counts = []
-				for annotation in data_B:
-					rev_counts.append(int(run('wiggletools write_bg - overlaps %s %s | wc -l' % (cmd_A, annotation)).strip()))
+				rev_counts = dict(
+					(annotation, int(run('wiggletools write_bg - overlaps %s %s | wc -l' % (destination, files[annotation])).strip()))
+					for annotation in annotations
+				)
 
-				annotation_count_dict = get_annotation_counts(cursor, options.userid)
-				annotation_counts = []
-				for annotation in options.b['annot_name']:
-					annotation_counts.append(annotation_count_dict[annotation])
+				annotation_counts = get_annotation_counts(cursor, options.userid)
 
-				out = open(destination, "w")
-				for name, count, annotation_count in zip(options.b['annot_name'], counts, annotation_counts):
-					out.write("\t".join(map(str, [name, count, annotation_count])) + "\n")
+				out = open(destination2, "w")
+				for annotation in annotations:
+					out.write("\t".join(map(str, [annotation, counts[annotation], annotation_counts[annotation]])) + "\n")
 				out.write("\t".join(['ALL', str(total)]) + "\n")
 				out.close()
 
-				make_barchart(counts, total, rev_counts, annotation_counts, options.b['annot_name'], destination + '.png', format='png')
+				make_barchart(annotations, counts, total, rev_counts, annotation_counts, destination2 + '.png')
+			return destination2
 		else:
-			fh, destination = tempfile.mkstemp(suffix='.bed',dir=options.working_directory)
-			os.remove(destination)
 			run(" ".join(['wiggletools','write_bg', destination, fun_merge, cmd_A, cmd_B]))
+			return destination
 	else:
-		fh, destination = tempfile.mkstemp(suffix='.bed',dir=options.working_directory)
-		os.remove(destination)
 		run(" ".join(['wiggletools','write_bg', destination, cmd_A]))
-
-	return destination
+		return destination
 
 def make_normalised_form(fun_merge, fun_A, data_A, fun_B, data_B):
 	cmd_A = funA + ":" + " ".join(data_A)
