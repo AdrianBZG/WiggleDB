@@ -159,7 +159,11 @@ def create_dataset_table(cursor, filename):
 			annotation bit, 
 			assembly varchar(100),
 		 '''
-	cursor.execute('\n'.join([header] + [",\n".join(['%s varchar(255)' % X for X in items[5:]])] + [')']))
+
+
+	query = '\n'.join([header] + [",\n".join(['%s varchar(255)' % X for X in items[5:]])] + [')'])[:-8] + '\n)'
+	
+	cursor.execute(query)
 
 	cursor.execute('SELECT * FROM datasets').fetchall()
 	column_names = [X[0] for X in cursor.description]
